@@ -11,17 +11,16 @@ const PARAMETER_MAP = { header: "headers", query: "query", path: "params" };
 /**
  * 
  * @param spec Openapi spec3 object
- * @param ajvOptions  Ajv options see https://ajv.js.org/#options
  */
-function useApp(spec: OpenAPIV3.Document, ajvOptions: Ajv.Options = {}): Route[] {
+function useApp(spec: OpenAPIV3.Document, options: Options = {}): Route[] {
   spec = derefSchema(spec);
-  ajvOptions = lodashMerge({
+  options.ajv = lodashMerge({
     unknownFormats: "ignore",
     useDefaults: true,
     coerceTypes: true,
     formats: ajvFormats,
-  }, ajvOptions);
-  const ajv = new Ajv(ajvOptions);
+  }, options.ajv);
+  const ajv = new Ajv(options.ajv);
   const routes: Route[] = [];
   for (const [path, pathItem] of Object.entries(spec.paths)) {
     for (const method of METHODS) {
@@ -74,6 +73,13 @@ function useApp(spec: OpenAPIV3.Document, ajvOptions: Ajv.Options = {}): Route[]
 
 function createDefaultSchema() {
   return { type: "object", properties: {}, required: [] };
+}
+
+export interface Options {
+  /*
+   * Pass thoungh ajv options see https://ajv.js.org/#options
+   */
+  ajv?: Ajv.Options;
 }
 
 export enum Method {

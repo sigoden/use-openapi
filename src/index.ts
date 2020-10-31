@@ -45,10 +45,9 @@ function useApp(spec: OpenAPIV3.Document, ajvOptions: Ajv.Options = {}): Route[]
         data.properties[obj.name] = obj.schema;
         if (obj.required) data.required.push(obj.name);
       };
-      if (Array.isArray(operation.parameters)) {
-        for (const parameter of operation.parameters as any) {
-          addParamaterSchema(parameter.in, parameter);
-        }
+      const parameters: any[] = [...(pathItem.parameters || []), ...(operation.parameters || [])];
+      for (const parameter of parameters) {
+        addParamaterSchema(parameter.in, parameter);
       }
       const bodySchema = lodashGet(operation, ["requestBody", "content", "application/json", "schema"]);
       if (bodySchema) {

@@ -19,7 +19,6 @@
   },
   "dependencies": {
     "ajv": "^6.12.6",
-    "clone": "^2.1.2",
     "dag-map": "^2.0.2",
     "decimal.js": "^10.2.1",
     "lodash.get": "^4.4.2",

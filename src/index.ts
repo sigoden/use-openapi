@@ -8,19 +8,24 @@ import derefSchema from "./derefSchema";
 const METHODS = ["get", "put", "delete", "post", "options"];
 const PARAMETER_MAP = { header: "headers", query: "query", path: "params" };
 
+
 /**
  * 
  * @param spec Openapi spec3 object
  */
 function useApp(spec: OpenAPIV3.Document, options: Options = {}): Route[] {
-  spec = derefSchema(spec);
-  options.ajv = lodashMerge({
-    unknownFormats: "ignore",
-    useDefaults: true,
-    coerceTypes: true,
-    formats: ajvFormats,
-  }, options.ajv);
-  const ajv = new Ajv(options.ajv);
+  const defaultOptions: Options = {
+    ajvOptions: {
+      unknownFormats: "ignore",
+      useDefaults: true,
+      coerceTypes: true,
+      formats: ajvFormats,
+    },
+    createResBodyValidate: false,
+  }
+  options = lodashMerge(defaultOptions, options);
+  derefSchema(spec);
+  const ajv = new Ajv(options.ajvOptions);
   const routes: Route[] = [];
   for (const [path, pathItem] of Object.entries(spec.paths)) {
     for (const method of METHODS) {
@@ -76,10 +81,15 @@ function createDefaultSchema() {
 }
 
 export interface Options {
+  /**
+   * Whether create response body validate
+   * @default false
+   */
+  createResBodyValidate?: boolean;
   /*
    * Pass thoungh ajv options see https://ajv.js.org/#options
    */
-  ajv?: Ajv.Options;
+  ajvOptions?: Ajv.Options;
 }
 
 export enum Method {
@@ -93,11 +103,13 @@ export enum Method {
 export interface Route {
   path: string;
   method: string;
-  operationId?: string;
+  operationId: string;
   security: OpenAPIV3.SecurityRequirementObject[];
   xProps: {[k: string]: any};
   validate: ValidateFn;
+  validateResBody?: (data: any) => Ajv.ErrorObject[];
 }
+
 export type ValidateFn = (data: ValidateData) => Ajv.ErrorObject[];
 
 export interface ValidateData {

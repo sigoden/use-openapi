@@ -1,61 +1,51 @@
 import * as lodashGet from "lodash.get";
 import * as traverse from "traverse";
-import * as clone from "clone";
 import DAG from "dag-map";
+
+export interface Options {
+  /*
+   * By default missing / unresolved refs will be left as is with their ref value intact.
+   * If set to <code>true</code> we will error out on first missing ref that we cannot
+   * resolve. Default: <code>false</code>.
+   */
+  failOnMiss?: boolean;
+
+  /* By default properties in a object with $ref will be removed in the output.
+   * If set to <code>true</code> they will be added/overwrite the output.
+   * Default: <code>false</code>
+   */
+  mergeAdditionalProperties?: boolean;
+
+  /* By default <code>$id</code> fields will get copied when dereferencing.
+   * If set to <code>true</code> they will be removed.
+   * Default: <code>false</code>.
+   */
+  removeIds?: boolean;
+}
 
 /**
  * Derefs $ref types in a schema
  */
-function derefSchema(spec, options: Options = {}) {
+function derefSchema(schema, options: Options = {}) {
   const state = {
-    graph: new DAG(),
-    circular: false,
-    circularRefs: [],
-    error: null,
     missing: [],
     history: [],
   };
 
-  const schema = clone(spec);
-  const isCircular = checkLocalCircular(schema);
-  if (isCircular instanceof Error) {
-    throw isCircular;
-  }
-
-  const check = () => {
-    if (state.circular) {
-      throw new Error(`circular references found: ${state.circularRefs.toString()}`);
-    } else if (state.error) {
-      throw state.error;
-    }
-  };
-
-  check();
+  checkCircular(schema);
 
   traverse(schema).forEach(function (node) {
     const self = this; // eslint-disable-line
-
-    if (node == null || typeof node === "undefined") {
-      return;
-    }
-
-    if (typeof node.$ref !== "string") {
-      return;
-    }
+    if (!isRefNode(node)) return;
 
     const refVal = getRefValue(node);
-
     const addOk = addToHistory(state, refVal);
+
     if (!addOk) {
-      state.circular = true;
-      state.circularRefs.push(refVal);
-      return;
+      throw new Error(`circular references found: ${refVal}`);
     }
 
-
     let newValue = getRefPathValue(schema, refVal);
-
-    check();
 
     state.history.pop();
 
@@ -64,10 +54,8 @@ function derefSchema(spec, options: Options = {}) {
         state.missing.push(refVal);
       }
       if (options.failOnMiss) {
-        state.error = new Error(`Missing $ref: ${refVal}`);
-        return check();
+        throw new Error(`Missing $ref: ${refVal}`);
       }
-      return check();
     }
 
     let obj;
@@ -101,29 +89,6 @@ function derefSchema(spec, options: Options = {}) {
       }
     }
   });
-
-  return schema;
-}
-
-export interface Options {
-  /*
-   * By default missing / unresolved refs will be left as is with their ref value intact.
-   * If set to <code>true</code> we will error out on first missing ref that we cannot
-   * resolve. Default: <code>false</code>.
-   */
-  failOnMiss?: boolean;
-
-  /* By default properties in a object with $ref will be removed in the output.
-   * If set to <code>true</code> they will be added/overwrite the output.
-   * Default: <code>false</code>
-   */
-  mergeAdditionalProperties?: boolean;
-
-  /* By default <code>$id</code> fields will get copied when dereferencing.
-   * If set to <code>true</code> they will be removed.
-   * Default: <code>false</code>.
-   */
-  removeIds?: boolean;
 }
 
 
@@ -153,27 +118,22 @@ function addToHistory(state, value) {
 
 /**
  * Check the schema for local circular refs using DAG
- * @param {Object} schema the schema
- * @return {Error|undefined} <code>Error</code> if circular ref, <code>undefined</code> otherwise if OK
- * @private
  */
-function checkLocalCircular(schema) {
+function checkCircular(schema) {
   const dag = new DAG();
   const locals = traverse(schema).reduce(function (acc, node) {
-    if (node !== null && typeof node !== "undefined" && typeof node.$ref === "string") {
+    if (isRefNode(node)) {
       const value = getRefValue(node);
-      if (value) {
-        const path = this.path.join("/");
-        acc.push({
-          from: path,
-          to: value,
-        });
-      }
+      const path = this.path.join("/");
+      acc.push({
+        from: path,
+        to: value,
+      });
     }
     return acc;
   }, []);
 
-  if (!locals || !locals.length) {
+  if (!locals.length) {
     return;
   }
 
@@ -196,16 +156,18 @@ function checkLocalCircular(schema) {
   });
 
   if (check) {
-    return new Error(`Circular self reference from ${check.from} to ${check.to}`);
+    throw new Error(`Circular self reference from ${check.from} to ${check.to}`);
   }
 }
 
+function isRefNode(node) {
+    return node !== null && typeof node !== "undefined" && typeof node.$ref === "string";
+}
 
 /**
  * Gets the ref value of a search result from prop-search or ref object
  * @param ref The search result object from prop-search
  * @returns {*} The value of $ref or undefined if not present in search object
- * @private
  */
 function getRefValue(ref) {
   const thing = ref ? (ref.value ? ref.value : ref) : null;
@@ -219,7 +181,6 @@ function getRefValue(ref) {
  * @param schema the (root) json schema to search
  * @param refPath string ref path to get within the schema. Ex. `#/definitions/id`
  * @returns {*} Returns the value at the path location or undefined if not found within the given schema
- * @private
  */
 function getRefPathValue(schema, refPath) {
   let rpath = refPath;

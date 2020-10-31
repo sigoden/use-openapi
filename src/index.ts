@@ -64,8 +64,8 @@ function useApp(spec: OpenAPIV3.Document, ajvOptions: Ajv.Options = {}): Route[]
         operationId: operation.operationId,
         xProps,
         validate: data => {
-          const isValid = validate(data);
-          return { isValid: !!isValid, errors:  validate.errors };
+          validate(data);
+          return validate.errors;
         },
       });
     }
@@ -93,7 +93,7 @@ export interface Route {
   xProps: {[k: string]: any};
   validate: ValidateFn;
 }
-export type ValidateFn = (data: ValidateData) => { isValid: boolean; errors: Ajv.ErrorObject[] };
+export type ValidateFn = (data: ValidateData) => Ajv.ErrorObject[];
 
 export interface ValidateData {
   headers?: {[k: string]: any};

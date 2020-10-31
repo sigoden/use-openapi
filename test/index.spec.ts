@@ -22,7 +22,7 @@ test("parsed route object", () => {
     ],
     xProps: {},
   });
-  const result = validate(
+  expect(validate(
     {
       body: {
         id: 10,
@@ -42,13 +42,13 @@ test("parsed route object", () => {
         ],
         status: "available", 
       },
-    });
-  expect(result).toEqual({ isValid: true, errors: null });
+    }
+  )).toEqual(null);
 });
 
 test("validate query and params", () => {
   const route = routes.find(v => v.operationId === "updatePetWithForm");
-  const ok = route.validate({
+  const errors1 = route.validate({
     query: {
       name: "Tim",
       status: "available",
@@ -57,8 +57,8 @@ test("validate query and params", () => {
       petId: "32",
     },
   });
-  expect(ok.isValid).toEqual(true);
-  const fail = route.validate({
+  expect(errors1).toEqual(null);
+  const errors2 = route.validate({
     query: {
       name: "Tim",
       status: "available",
@@ -67,19 +67,17 @@ test("validate query and params", () => {
       petId: "abc",
     },
   });
-  expect(fail).toEqual({
-    "isValid": false,
-    "errors": [
-      {
-        "keyword": "type",
-        "dataPath": ".params.petId",
-        "schemaPath": "#/properties/params/properties/petId/type",
-        "params": {
-          "type": "integer",
-        },
-        "message": "should be integer",
+  expect(errors2).toEqual([
+    {
+      "keyword": "type",
+      "dataPath": ".params.petId",
+      "schemaPath": "#/properties/params/properties/petId/type",
+      "params": {
+        "type": "integer",
       },
-    ]});
+      "message": "should be integer",
+    },
+  ]);
 });
 
 

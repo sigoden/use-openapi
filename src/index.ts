@@ -21,7 +21,7 @@ function useApp(spec: OpenAPIV3.Document, options: Options = {}): Route[] {
       coerceTypes: true,
       formats: ajvFormats,
     },
-    createResBodyValidate: false,
+    createResValidate: false,
   }
   options = lodashMerge(defaultOptions, options);
   derefSchema(spec);
@@ -59,6 +59,19 @@ function useApp(spec: OpenAPIV3.Document, options: Options = {}): Route[] {
       }
 
       const validate = ajv.compile(endpointSchema);
+      let validateRes: ValidateResFn = null;
+      if (options.createResValidate) {
+        const validateStatusBody = {};
+        const responses = lodashGet(options, ["responses"], {});
+        for (const status in responses) {
+          const schema = lodashGet(responses, [status, "content", "application/json"])
+          if (schema) validateStatusBody[status] = ajv.compile(schema);
+        }
+        validateRes = (status, body) => {
+          const validate = validateStatusBody[status];
+          if (validate) return validate(body);
+        }
+      }
 
       routes.push({
         path: path.replace(/{([^}]+)}/g, ":$1").replace(/\/$/, ""),
@@ -70,6 +83,7 @@ function useApp(spec: OpenAPIV3.Document, options: Options = {}): Route[] {
           validate(data);
           return validate.errors;
         },
+        validateRes,
       });
     }
   }
@@ -85,7 +99,7 @@ export interface Options {
    * Whether create response body validate
    * @default false
    */
-  createResBodyValidate?: boolean;
+  createResValidate?: boolean;
   /*
    * Pass thoungh ajv options see https://ajv.js.org/#options
    */
@@ -107,10 +121,11 @@ export interface Route {
   security: OpenAPIV3.SecurityRequirementObject[];
   xProps: {[k: string]: any};
   validate: ValidateFn;
-  validateResBody?: (data: any) => Ajv.ErrorObject[];
+  validateRes?: ValidateResFn;
 }
 
 export type ValidateFn = (data: ValidateData) => Ajv.ErrorObject[];
+export type ValidateResFn = (status: number, data: any) => Ajv.ErrorObject[];
 
 export interface ValidateData {
   headers?: {[k: string]: any};

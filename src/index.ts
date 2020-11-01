@@ -9,11 +9,7 @@ const METHODS = ["get", "put", "delete", "post", "options"];
 const PARAMETER_MAP = { header: "headers", query: "query", path: "params" };
 
 
-/**
- * 
- * @param spec Openapi spec3 object
- */
-function useApp(spec: OpenAPIV3.Document, options: Options = {}): Route[] {
+function useOpenApi(spec: OpenAPIV3.Document, options: Options = {}): Route[] {
   const defaultOptions: Options = {
     ajvOptions: {
       unknownFormats: "ignore",
@@ -134,5 +130,5 @@ export interface ValidateData {
   body?: any;
 }
 
-export { useApp };
-export default useApp;
+export { useOpenApi };
+export default useOpenApi;

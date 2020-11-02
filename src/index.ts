@@ -9,7 +9,7 @@ const METHODS = ["get", "put", "delete", "post", "options"];
 const PARAMETER_MAP = { header: "headers", query: "query", path: "params" };
 
 
-function useOpenApi(spec: OpenAPIV3.Document, options: Options = {}): Route[] {
+function getOperations(spec: OpenAPIV3.Document, options: Options = {}): Operation[] {
   const defaultOptions: Options = {
     ajvOptions: {
       unknownFormats: "ignore",
@@ -18,11 +18,11 @@ function useOpenApi(spec: OpenAPIV3.Document, options: Options = {}): Route[] {
       formats: ajvFormats,
     },
     createResValidate: false,
-  }
+  };
   options = lodashMerge(defaultOptions, options);
   derefSchema(spec);
   const ajv = new Ajv(options.ajvOptions);
-  const routes: Route[] = [];
+  const operations: Operation[] = [];
   for (const [path, pathItem] of Object.entries(spec.paths)) {
     for (const method of METHODS) {
       const operation = pathItem[method] as OpenAPIV3.OperationObject;
@@ -60,16 +60,16 @@ function useOpenApi(spec: OpenAPIV3.Document, options: Options = {}): Route[] {
         const validateStatusBody = {};
         const responses = lodashGet(options, ["responses"], {});
         for (const status in responses) {
-          const schema = lodashGet(responses, [status, "content", "application/json"])
+          const schema = lodashGet(responses, [status, "content", "application/json"]);
           if (schema) validateStatusBody[status] = ajv.compile(schema);
         }
         validateRes = (status, body) => {
           const validate = validateStatusBody[status];
           if (validate) return validate(body);
-        }
+        };
       }
 
-      routes.push({
+      operations.push({
         path: path.replace(/{([^}]+)}/g, ":$1").replace(/\/$/, ""),
         method,
         security: operation.security,
@@ -83,7 +83,7 @@ function useOpenApi(spec: OpenAPIV3.Document, options: Options = {}): Route[] {
       });
     }
   }
-  return routes;
+  return operations;
 }
 
 function createDefaultSchema() {
@@ -110,7 +110,7 @@ export enum Method {
   Patch = "patch",
 }
 
-export interface Route {
+export interface Operation {
   path: string;
   method: string;
   operationId: string;
@@ -130,5 +130,4 @@ export interface ValidateData {
   body?: any;
 }
 
-export { useOpenApi };
-export default useOpenApi;
+export { getOperations };

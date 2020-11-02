@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-var-requires  */
-import useOpenApi from "../src";
+import { getOperations } from "../src";
 
 const petstore = require("./spec/petstore.json");
-const routes = useOpenApi(petstore);
+const routes = getOperations(petstore);
 
 test("parsed route object", () => {
   const {

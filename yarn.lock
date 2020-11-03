@@ -2603,6 +2603,11 @@ json5@2.x, json5@^2.1.2:
   dependencies:
     minimist "^1.2.5"
 
+jsona-openapi-js@^0.1.12:
+  version "0.1.12"
+  resolved "https://registry.yarnpkg.com/jsona-openapi-js/-/jsona-openapi-js-0.1.12.tgz#91d06ca5e47fa067dbd8aac5b9152210dbb80b10"
+  integrity sha512-0awxUjwPTwFi8G+8ZwdDt0kH6UeojFsy3aKm72jWiuUFRuWJlkUBrfYPoYy2yuBNenNNMbT+cODH+Jf85P6abQ==
+
 jsprim@^1.2.2:
   version "1.4.1"
   resolved "https://registry.yarnpkg.com/jsprim/-/jsprim-1.4.1.tgz#313e66bc1e5cc06e438bc1b7499c2e5c56acb6a2"

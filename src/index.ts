@@ -72,7 +72,7 @@ function getOperations(spec: OpenAPIV3.Document, options: Options = {}): Operati
       operations.push({
         path: path.replace(/{([^}]+)}/g, ":$1").replace(/\/$/, ""),
         method,
-        security: operation.security,
+        security: operation.security || spec.security,
         operationId: operation.operationId,
         xProps,
         validate: data => {

@@ -1,15 +1,15 @@
-import { OpenAPIV3 } from "openapi-types";
 import * as Ajv from "ajv";
 import * as lodashMerge from "lodash.merge";
 import * as lodashGet from "lodash.get";
 import ajvFormats from "./ajvFormats";
 import derefSchema from "./derefSchema";
+import * as openapi from "jsona-openapi-js";
 
 const METHODS = ["get", "put", "delete", "post", "options"];
 const PARAMETER_MAP = { header: "headers", query: "query", path: "params" };
 
 
-function getOperations(spec: OpenAPIV3.Document, options: Options = {}): Operation[] {
+function getOperations(spec: openapi.Spec, options: Options = {}): Operation[] {
   const defaultOptions: Options = {
     ajvOptions: {
       unknownFormats: "ignore",
@@ -25,7 +25,7 @@ function getOperations(spec: OpenAPIV3.Document, options: Options = {}): Operati
   const operations: Operation[] = [];
   for (const [path, pathItem] of Object.entries(spec.paths)) {
     for (const method of METHODS) {
-      const operation = pathItem[method] as OpenAPIV3.OperationObject;
+      const operation = pathItem[method] as openapi.OperationObject;
       if (!operation) continue;
       const xProps = Object.keys(operation).filter(key => key.startsWith("x-") || key.startsWith("x")).reduce((a, c) => {
         a[c] = operation[c];
@@ -35,7 +35,7 @@ function getOperations(spec: OpenAPIV3.Document, options: Options = {}): Operati
         throw new Error(`endpoint ${method.toUpperCase()} ${path} miss operationId`);
       }
       const endpointSchema = createDefaultSchema() ;
-      const addParamaterSchema = (key, obj: OpenAPIV3.ParameterObject) => {
+      const addParamaterSchema = (key, obj: openapi.ParameterObject) => {
         const dataKey = PARAMETER_MAP[key];
         if (!dataKey) return;
         let data = endpointSchema.properties[dataKey];
@@ -114,7 +114,7 @@ export interface Operation {
   path: string;
   method: string;
   operationId: string;
-  security: OpenAPIV3.SecurityRequirementObject[];
+  security: openapi.SecurityRequirementObject[];
   xProps: {[k: string]: any};
   validate: ValidateFn;
   validateRes?: ValidateResFn;
